@@ -75,6 +75,7 @@ function UserDashboard() {
           {/* Sidebar Menu */}
           <ul className="space-y-4 text-lg font-semibold">
             {[
+              { path: "/user-dashboard/frontpage", label: "Student Dashboard" },
               { path: "/user-dashboard/students", label: "Personal Information" },
               { path: "/user-dashboard/examinations", label: "Examination" },
               { path: "/user-dashboard/committeess", label: "Committees" },

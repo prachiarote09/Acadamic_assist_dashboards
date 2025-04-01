@@ -8,7 +8,7 @@ function Bca() {
   return (
     <div className="font-sans min-h-screen bg-gradient-to-b from-gray-50 to-gray-200 p-6">
       <h1 className="text-3xl font-bold text-center mt-6 text-purple-700">
-        Welcome to BCA Examination
+        Welcome to  Examination Page
       </h1>
 
       {/* Sections with Tables */}
