@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { handleError, handleSucess } from "../../../../Utils";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useState } from "react";
+import { handleError } from "../../../../Utils";
+import { useNavigate } from "react-router-dom";
 
 function Studentfom() {
-  const { id } = useParams();
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   //Religion
@@ -28,67 +26,23 @@ function Studentfom() {
   const [email, setEmail] = useState("");
   const [parentMobileNo,setParentMobileNumber]=useState("");
   const [emergencyMobileNo,setEmergencyMobileNo]=useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      fetchStudentData();
-    }
-  }, [id]);
 
-  const fetchStudentData = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`http://localhost:8080/student/${id}`, {
-        headers: {
-          "Authorization": localStorage.getItem("token"),
-        },
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch student data");
-      }
-
-      const studentData = await response.json();
-      setName(studentData.name);
-      setDateOfBirth(studentData.dateOfBirth);
-      setReligion(studentData.religion);
-      setCaste(studentData.caste);
-      setMotherTongue(studentData.motherTongue);
-      setAnnualIncome(studentData.annualIncome);
-      setGrnumber(studentData.grnumber);
-      setAbcId(studentData.abcId);
-      setCourseName(studentData.courseName);
-      setYear(studentData.year);
-      setAddress(studentData.address);
-      setCity(studentData.city);
-      setState(studentData.state);
-      setDistrict(studentData.district);
-      setPinCode(studentData.pinCode);
-      setMobileNo(studentData.mobileNo);
-      setEmail(studentData.email);
-      setParentMobileNumber(studentData.parentMobileNo);
-      setEmergencyMobileNo(studentData.emergencyMobileNo);
-    } catch (error) {
-      handleError(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const navigate = useNavigate();
 
   const addData = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
 
     const user_id = localStorage.getItem("user_id");
 
     if (!user_id) {
-      handleError("User ID not found");
+      console.error("User ID not found");
       return;
+    } else {
+      console.log("id found", user_id);
     }
 
-    const studentData = {
+    const newData = {
       name,
       dateOfBirth,
       religion,
@@ -112,82 +66,55 @@ function Studentfom() {
     };
 
     try {
-      const url = `http://localhost:8080/student${id ? `/${id}` : ''}`;
-      const method = id ? 'PUT' : 'POST';
+      const url = `http://localhost:8080/student`;
 
       const response = await fetch(url, {
-        method,
+        method: "POST",
         headers: {
           Authorization: localStorage.getItem("token"),
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(studentData),
+        body: JSON.stringify(newData),
       });
 
       if (response.status === 403) {
-        navigate("/admin/Login");
+        navigate("/login");
         return;
       }
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${id ? 'update' : 'create'} student`);
-      }
-
       const result = await response.json();
-      handleSucess(id ? "Student updated successfully!" : "Student added successfully!");
-      
-      // Clear form only for new entries
-      if (!id) {
-        setName("");
-        setDateOfBirth("");
-        setReligion("");
-        setCaste("");
-        setMotherTongue("");
-        setAnnualIncome("");
-        setGrnumber("");
-        setAbcId("");
-        setCourseName("");
-        setYear("");
-        setAddress("");
-        setCity("");
-        setState("");
-        setDistrict("");
-        setPinCode("");
-        setMobileNo("");
-        setEmail("");
-        setParentMobileNumber("");
-        setEmergencyMobileNo("");
-      }
+      console.log("Data added:", result.data);
 
-      // Navigate back to student list after a short delay
-      setTimeout(() => {
-        navigate("/admin-dashboard/studentlist");
-      }, 1500);
-
+      // Clear form inputs
+      setName("");
+      setDateOfBirth("");
+      setReligion("");
+      setCaste("");
+      setMotherTongue("");
+      setAnnualIncome("");
+      setGrnumber("");
+      setAbcId("");
+      setCourseName("");
+      setYear("");
+      setAddress("");
+      setCity("");
+      setState("");
+      setDistrict("");
+      setPinCode("");
+      setMobileNo("");
+      setEmail("");
+      setParentMobileNumber("");
+      setEmergencyMobileNo("");
     } catch (err) {
-      handleError(err.message || "An error occurred while saving the student data");
-    } finally {
-      setIsLoading(false);
+      handleError(err);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-purple-400 rounded-lg">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-center text-2xl font-bold text-white">
-          {id ? 'Edit Student' : 'Add Student'}
-        </h1>
+    <div className="max-w-3xl mx-auto p-6 bg-gradient-to-r from-purple-400 to-blue-400 shadow-lg rounded-lg">
+      <div className="flex justify-end mb-4">
         <button
           onClick={() => navigate("/admin-dashboard/studentlist")}
-          className="bg-gradient-to-r from-purple-900 to-purple-900 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          className="bg-green-400 text-white px-4 py-2 rounded-md hover:bg-blue-600"
         >
           View Students
         </button>
@@ -442,7 +369,7 @@ function Studentfom() {
         </div>
 
         <div className="flex justify-center gap-4">
-          <button type="submit" className=" bg-gradient-to-r from-purple-900 to-purple-900 text-white px-6 py-2 rounded-md hover:bg-purple-600">
+          <button type="submit" className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
             Save
           </button>
         </div>

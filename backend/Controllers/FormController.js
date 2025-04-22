@@ -9,7 +9,7 @@ const createStudent = async(req,res) =>{
             caste,
             motherTongue,
             annualIncome,
-            grNumber,
+            grnumber,
             abcId,
             courseName,
             year,
