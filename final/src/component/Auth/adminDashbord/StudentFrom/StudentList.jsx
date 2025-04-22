@@ -7,23 +7,20 @@ const StudentList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
-  // Load student data from local storage on page load
   useEffect(() => {
     fetchStudents();
   }, []);
 
-  // Filter students based on search query
-  const filteredStudents = students.filter(student =>
+  const filteredStudents = students.filter((student) =>
     student.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Fetch all students
   const fetchStudents = async () => {
     try {
       const url = "http://localhost:8080/student";
       const headers = {
         headers: {
-          "Authorization": localStorage.getItem("token"),
+          Authorization: localStorage.getItem("token"),
         },
         method: "GET",
       };
@@ -39,12 +36,11 @@ const StudentList = () => {
     }
   };
 
-  // Fetch a single student's details
   const viewStudentDetails = async (id) => {
     try {
       const response = await fetch(`http://localhost:8080/student/${id}`, {
         headers: {
-          "Authorization": localStorage.getItem("token"),
+          Authorization: localStorage.getItem("token"),
         },
         method: "GET",
       });
@@ -60,20 +56,48 @@ const StudentList = () => {
     }
   };
 
-  // Handle edit student
   const handleEditStudent = (studentId) => {
     navigate(`/admin-dashboard/studentform/${studentId}`);
   };
+  const handleDeleteStudent = async (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this student?");
+    if (!confirmDelete) return;
+  
+    try {
+      const response = await fetch(`http://localhost:8080/student/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": localStorage.getItem("token"),
+        },
+      });
+  
+      if (response.ok) {
+        // Remove the student from UI
+        setStudents(prev => prev.filter(student => student._id !== id));
+      } else if (response.status === 403) {
+        navigate("/admin/Login");
+      } else {
+        const error = await response.json();
+        console.error("Delete failed:", error.message);
+      }
+    } catch (err) {
+      console.error("Error deleting student:", err);
+    }
+  };
+  
 
   return (
-    <div className="max-w-200 mx-auto p-6 rounded-lg">
+    <div className="max-w-full mx-auto p-4 sm:p-6 rounded-lg">
       {selectedStudent ? (
-        <StudentDashboard student={selectedStudent} goBack={() => setSelectedStudent(null)} />
+        <StudentDashboard
+          student={selectedStudent}
+          goBack={() => setSelectedStudent(null)}
+        />
       ) : (
         <>
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
             <h1 className="text-2xl font-bold text-black-800">Student List</h1>
-            <div className="relative w-96">
+            <div className="relative w-full sm:w-96">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg
                   className="h-5 w-5 text-gray-400"
@@ -97,61 +121,70 @@ const StudentList = () => {
               />
             </div>
           </div>
-          <table className="w-full mt-4 border-black">
-            <thead>
-              <tr className="bg-purple-700 text-white">
-                <th className="p-3 text-left">Name</th>
-                <th className="p-3 text-left">GR No.</th>
-                <th className="p-3 text-left">Course</th>
-                <th className="p-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStudents.map((student) => (
-                <tr key={student._id} className="border-b border-black-300">
-                  <td className="p-3">{student.name}</td>
-                  <td className="p-3">{student.grnumber}</td>
-                  <td className="p-3">{student.courseName}</td>
-                  <td className="p-3 space-x-2">
-                    <button
-                      onClick={() => viewStudentDetails(student._id)}
-                      className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-3 py-1 rounded-md hover:bg-purple-600"
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={() => handleEditStudent(student._id)}
-                      className="bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-800 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-700">
-                      Delete
-                    </button>
-                  </td>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full mt-4 border border-black">
+              <thead>
+                <tr className="bg-purple-700 text-white">
+                  <th className="p-3 text-left">Name</th>
+                  <th className="p-3 text-left">GR No.</th>
+                  <th className="p-3 text-left">Course</th>
+                  <th className="p-3 text-left">Actions</th>
                 </tr>
-              ))}
-              {students.length === 0 && (
-                <tr>
-                  <td colSpan="4" className="text-center p-4">
-                    No students added yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredStudents.map((student) => (
+                  <tr
+                    key={student._id}
+                    className="border-b border-gray-300 bg-white hover:bg-gray-50"
+                  >
+                    <td className="p-3">{student.name}</td>
+                    <td className="p-3">{student.grnumber}</td>
+                    <td className="p-3">{student.courseName}</td>
+                    <td className="p-3 space-x-2 whitespace-nowrap">
+                      <button
+                        onClick={() => viewStudentDetails(student._id)}
+                        className="bg-gradient-to-r from-purple-700 to-purple-900 text-white px-3 py-1 rounded-md hover:bg-purple-600"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleEditStudent(student._id)}
+                        className="bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-800 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                       onClick={() => handleDeleteStudent(student._id)}
+                       className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors"
+                         >
+                       Delete
+                      </button>
+
+                    </td>
+                  </tr>
+                ))}
+                {students.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="text-center p-4">
+                      No students added yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>
   );
 };
 
-// Student Detail Page
 const StudentDashboard = ({ student, goBack }) => {
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-gray-50 rounded-lg shadow-lg">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-4xl font-bold text-purple-800">Student Details</h2>
+    <div className="max-w-full mx-auto p-4 sm:p-6 bg-gray-50 rounded-lg shadow-lg">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <h2 className="text-3xl font-bold text-purple-800">Student Details</h2>
         <button
           onClick={goBack}
           className="bg-purple-700 text-white px-4 py-2 rounded-md hover:bg-purple-800 transition-colors"
@@ -160,106 +193,63 @@ const StudentDashboard = ({ student, goBack }) => {
         </button>
       </div>
 
-      {/* Personal Information Table */}
-      <div className="mb-8">
-        <h3 className="text-2xl font-semibold text-purple-700 mb-4 bg-purple-100 p-3 rounded-t-lg">
-          Personal Information
-        </h3>
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <tbody className="divide-y divide-gray-200">
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900 w-1/3">Name</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.name}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">Date of Birth</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.dateOfBirth}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">Religion</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.religion}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">Caste</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.caste}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">Mother Tongue</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.motherTongue}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">Annual Income</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.annualIncome}</td>
-              </tr>
-            </tbody>
-          </table>
+      {[
+        {
+          title: "Personal Information",
+          data: [
+            ["Name", student.name],
+            ["Date of Birth", student.dateOfBirth],
+            ["Religion", student.religion],
+            ["Caste", student.caste],
+            ["Mother Tongue", student.motherTongue],
+            ["Annual Income", student.annualIncome],
+          ],
+        },
+        {
+          title: "Academic Details",
+          data: [
+            ["GR Number", student.grnumber],
+            ["Course Name", student.courseName],
+            ["Year", student.year],
+            ["ABC ID", student.abcId],
+          ],
+        },
+        {
+          title: "Contact Information",
+          data: [
+            [
+              "Address",
+              `${student.address}, ${student.city}, ${student.state}, ${student.district}, ${student.pinCode}`,
+            ],
+            ["Mobile No.", student.mobileNo],
+            ["Email", student.email],
+            ["Parent Mobile No.", student.parentMobileNo],
+            ["Emergency Mobile No.", student.emergencyMobileNo],
+          ],
+        },
+      ].map((section, i) => (
+        <div key={i} className="mb-8 w-full overflow-x-auto">
+          <h3 className="text-2xl font-semibold text-purple-700 mb-4 bg-purple-100 p-3 rounded-t-lg">
+            {section.title}
+          </h3>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200">
+                {section.data.map(([label, value], idx) => (
+                  <tr key={idx}>
+                    <td className="px-6 py-4 text-base font-medium text-gray-900 w-1/3 whitespace-nowrap">
+                      {label}
+                    </td>
+                    <td className="px-6 py-4 text-base font-semibold text-gray-700">
+                      {value}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-
-      {/* Academic Details Table */}
-      <div className="mb-8">
-        <h3 className="text-2xl font-semibold text-purple-700 mb-4 bg-purple-100 p-3 rounded-t-lg">
-          Academic Details
-        </h3>
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <tbody className="divide-y divide-gray-200">
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900 w-1/3">GR Number</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.grnumber}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">Course Name</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.courseName}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">Year</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.year}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">ABC ID</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.abcId}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Contact Information Table */}
-      <div>
-        <h3 className="text-2xl font-semibold text-purple-700 mb-4 bg-purple-100 p-3 rounded-t-lg">
-          Contact Information
-        </h3>
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <tbody className="divide-y divide-gray-200">
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900 w-1/3">Address</td>
-                <td className="px-6 py-4 text-base font-semibold text-gray-700">
-                  {student.address}, {student.city}, {student.state}, {student.district}, {student.pinCode}
-                </td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">Mobile No.</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.mobileNo}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">Email</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.email}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">Parent Mobile No.</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.parentMobileNo}</td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-gray-900">Emergency Mobile No.</td>
-                <td className="px-6 py-4 whitespace-nowrap text-base font-semibold text-gray-700">{student.emergencyMobileNo}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      ))}
     </div>
   );
 };

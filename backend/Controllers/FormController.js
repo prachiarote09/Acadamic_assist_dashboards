@@ -58,9 +58,23 @@ const fetchSingleData = async (req,res) =>{
     }
     
 }
+const deleteStudent = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const deletedStudent = await FormModel.findByIdAndDelete(id);
+        if (!deletedStudent) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+        res.status(200).json({ message: "Student deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting student:", error.message);
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
 
 module.exports={
     createStudent,
     fetchAllData,
-    fetchSingleData
+    fetchSingleData,
+    deleteStudent
 }
