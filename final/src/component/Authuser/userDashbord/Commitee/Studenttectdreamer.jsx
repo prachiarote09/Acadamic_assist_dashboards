@@ -1,16 +1,53 @@
-import React,{useState,useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import { FaUserGraduate, FaUsers } from "react-icons/fa";
 import { MdGroups } from "react-icons/md";
+import axios from "axios";
+import { handleError } from "../../../../Utils";
 
 const Studenttectdreamer = () => {
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    const [students, setStudents] = useState([]);
-  
-    // Load student data from localStorage when component mounts
-    useEffect(() => {
-      const savedStudents = JSON.parse(localStorage.getItem("techdreamerStudents")) || [];
-      setStudents(savedStudents);
-    }, []);
+  useEffect(() => {
+    const fetchTechdreamerData = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("http://localhost:8080/api/techdreamercommittiee/", {
+          headers: {
+            Authorization: localStorage.getItem("token"),
+            "Content-Type": "application/json",
+          },
+        });
+        setStudents(response.data);
+        setError(null);
+      } catch (error) {
+        console.error("Error fetching Techdreamer committee data:", error);
+        setError("Failed to load Techdreamer committee data.");
+        handleError("Error loading Techdreamer committee data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTechdreamerData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-xl text-purple-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-xl text-red-600">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-8 bg-gray-50 min-h-screen flex flex-col items-center">
@@ -46,14 +83,22 @@ const Studenttectdreamer = () => {
               </tr>
             </thead>
             <tbody>
-              {students.map((student, index) => (
-                <tr key={index} className="border-b border-gray-300 hover:bg-purple-100 transition">
-                  <td className="p-4 font-medium">{student.name}</td>
-                  <td className="p-4">{student.department}</td>
-                  <td className="p-4">{student.year}</td>
-                  <td className="p-4">{student.grNumber}</td>
+              {students.length > 0 ? (
+                students.map((student) => (
+                  <tr key={student._id} className="border-b border-gray-300 hover:bg-purple-100 transition">
+                    <td className="p-4 font-medium">{student.name}</td>
+                    <td className="p-4">{student.department}</td>
+                    <td className="p-4">{student.year}</td>
+                    <td className="p-4">{student.grNumber}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="p-4 text-center text-gray-500">
+                    No committee members available.
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

@@ -1,15 +1,53 @@
 import React, { useState, useEffect } from "react";
 import { FaUsers, FaUserTie } from "react-icons/fa";
 import { MdGroups } from "react-icons/md";
+import axios from "axios";
+import { handleError } from "../../../../Utils";
 
 const StudentCouncil = () => {
   const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // ✅ Load members from localStorage when the component mounts
   useEffect(() => {
-    const savedStudents = JSON.parse(localStorage.getItem("studentCommittee")) || [];
-    setMembers(savedStudents);
+    const fetchStudentCommittee = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("http://localhost:8080/api/studentcommittee/", {
+          headers: {
+            Authorization: localStorage.getItem("token"),
+            "Content-Type": "application/json",
+          },
+        });
+        setMembers(response.data);
+        setError(null);
+      } catch (error) {
+        console.error("Error fetching student committee data:", error);
+        setError("Failed to load student committee data.");
+        handleError("Error loading student committee data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudentCommittee();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-xl text-green-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-xl text-red-600">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-8 bg-gray-50 min-h-screen flex flex-col items-center">
@@ -45,8 +83,8 @@ const StudentCouncil = () => {
             </thead>
             <tbody>
               {members.length > 0 ? (
-                members.map((member, index) => (
-                  <tr key={index} className="border-b border-gray-300 hover:bg-green-100 transition">
+                members.map((member) => (
+                  <tr key={member._id} className="border-b border-gray-300 hover:bg-green-100 transition">
                     <td className="p-4 font-medium">{member.name}</td>
                     <td className="p-4">{member.department}</td>
                     <td className="p-4">{member.year}</td>

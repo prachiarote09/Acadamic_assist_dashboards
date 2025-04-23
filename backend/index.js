@@ -17,6 +17,9 @@ const sportCommitteeRoutes = require("./Routes/sportCommitteeRoutes");
 const raggingCommitteeRoutes = require("./Routes/raggingCommitteeRoutes");
 const EventModel = require("./Models/Event");
 const NoticeModel = require("./Models/Notice");
+const studentCommitteeRoutes = require("./Routes/studentCommitteeRoute");
+const TechDreamerRoutes = require("./Routes/techRoutes");
+
 
 
 
@@ -33,6 +36,10 @@ app.use("/feedback",FeedbackRouter);
 app.use("/api/cultural", culturalCommitteeRoutes);
 app.use("/api/sport", sportCommitteeRoutes);
 app.use("/api/ragging", raggingCommitteeRoutes);
+app.use("/api/studentCommittee", studentCommitteeRoutes);
+app.use("/api/techdreamercommittiee", TechDreamerRoutes);
+
+
 
 const db=require('./Models/db');
 const FeedbackModel = require("./Models/Feedback");
