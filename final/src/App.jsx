@@ -13,6 +13,8 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Option />} />
+        <Route path="/option" element={<Option />} />
+
         <Route path="/admin/Login" element={<AdminLogin />} />
         <Route path="/user/login" element={<Userlogin />} />
         <Route path="/admin-dashboard/*" element={<Dashbord />} />

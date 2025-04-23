@@ -57,12 +57,14 @@ const StudentList = () => {
   };
 
   const handleEditStudent = (studentId) => {
+    // Navigate to Student Form with ID
     navigate(`/admin-dashboard/studentform/${studentId}`);
   };
+
   const handleDeleteStudent = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this student?");
     if (!confirmDelete) return;
-  
+
     try {
       const response = await fetch(`http://localhost:8080/student/${id}`, {
         method: "DELETE",
@@ -70,9 +72,8 @@ const StudentList = () => {
           "Authorization": localStorage.getItem("token"),
         },
       });
-  
+
       if (response.ok) {
-        // Remove the student from UI
         setStudents(prev => prev.filter(student => student._id !== id));
       } else if (response.status === 403) {
         navigate("/admin/Login");
@@ -84,7 +85,6 @@ const StudentList = () => {
       console.error("Error deleting student:", err);
     }
   };
-  
 
   return (
     <div className="max-w-full mx-auto p-4 sm:p-6 rounded-lg">
@@ -155,12 +155,11 @@ const StudentList = () => {
                         Edit
                       </button>
                       <button
-                       onClick={() => handleDeleteStudent(student._id)}
-                       className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors"
-                         >
-                       Delete
+                        onClick={() => handleDeleteStudent(student._id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors"
+                      >
+                        Delete
                       </button>
-
                     </td>
                   </tr>
                 ))}
