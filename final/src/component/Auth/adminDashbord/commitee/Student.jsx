@@ -1,26 +1,79 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { handleError, handleSucess } from "../../../../Utils";
 
-const  Student = () => {
+const Student = () => {
   const [formData, setFormData] = useState({
     name: "",
     department: "",
     year: "",
     grNumber: "",
   });
-
   const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStudentData = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get("http://localhost:8080/api/studentcommittee/", {
+        headers: {
+          Authorization: localStorage.getItem("token"),
+          "Content-Type": "application/json",
+        },
+      });
+      setStudents(response.data);
+    } catch (error) {
+      handleError("Error fetching student committee data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStudentData();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setStudents((prev) => [...prev, formData]);
-    console.log("Form Data:", formData);
-    alert("Student data saved successfully!");
-    handleReset();
+    try {
+      const response = await axios.post("http://localhost:8080/api/studentcommittee/", formData, {
+        headers: {
+          Authorization: localStorage.getItem("token"),
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 201) {
+        handleSucess("Student committee member added successfully!");
+        handleReset();
+        fetchStudentData();
+      }
+    } catch (error) {
+      handleError("Error saving data: " + error.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const response = await axios.delete(`http://localhost:8080/api/studentcommittee/${id}`, {
+        headers: {
+          Authorization: localStorage.getItem("token"),
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 200) {
+        handleSucess("Member deleted successfully!");
+        fetchStudentData();
+      }
+    } catch (error) {
+      handleError("Error deleting member: " + error.message);
+    }
   };
 
   const handleReset = () => {
@@ -32,19 +85,9 @@ const  Student = () => {
     });
   };
 
-  const handleEdit = (index) => {
-    const studentToEdit = students[index];
-    setFormData(studentToEdit);
-    handleDelete(index);
-  };
-
-  const handleDelete = (index) => {
-    setStudents((prev) => prev.filter((_, i) => i !== index));
-  };
-
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-purple-200 shadow-lg rounded-lg">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="max-w-5xl mx-auto p-6 bg-purple-100 shadow-lg rounded-lg">
+      <form onSubmit={handleSubmit} className="space-y-6 mb-8">
         <h1 className="text-center text-2xl font-bold text-purple">Student Committee</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -70,19 +113,21 @@ const  Student = () => {
         </div>
 
         <div className="flex justify-center gap-4">
-          <button type="submit" className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">Save</button>
-          <button type="button" onClick={handleReset} className="bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600">Cancel</button>
+          <button type="submit" className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+            Save
+          </button>
+          <button type="button" onClick={handleReset} className="bg-red-500 text-white px-6 py-2 rounded-md hover:bg-red-600">
+            Cancel
+          </button>
         </div>
       </form>
 
-      <hr className="my-8 border-t-2 border-gray-300" />
-
-      <div>
-        <h2 className="text-xl font-semibold text-purple -200 mt-6">Student List</h2>
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-semibold text-purple mb-4">Committee Members</h2>
         <div className="overflow-x-auto">
-          <table className="w-full mt-4 border-collapse min-w-[300px]">
+          <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-purple-500 text-white">
+              <tr className="bg-purple-600 text-white">
                 <th className="p-3 text-left">Name</th>
                 <th className="p-3 text-left">Department</th>
                 <th className="p-3 text-left">Year</th>
@@ -91,28 +136,34 @@ const  Student = () => {
               </tr>
             </thead>
             <tbody>
-              {students.map((student, index) => (
-                <tr key={index} className="border-b border-gray-300 text-white">
-                  <td className="p-3 bg-transparent">{student.name}</td>
-                  <td className="p-3 bg-transparent">{student.department}</td>
-                  <td className="p-3 bg-transparent">{student.year}</td>
-                  <td className="p-3 bg-transparent">{student.grNumber}</td>
-                  <td className="p-3 flex gap-2">
-                    <button
-                      onClick={() => handleEdit(index)}
-                      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(index)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm"
-                    >
-                      Delete
-                    </button>
+              {loading ? (
+                <tr>
+                  <td colSpan="5" className="p-4 text-center text-purple-600">Loading...</td>
+                </tr>
+              ) : students.length > 0 ? (
+                students.map((student) => (
+                  <tr key={student._id} className="border-b border-gray-200 hover:bg-purple-50">
+                    <td className="p-3">{student.name}</td>
+                    <td className="p-3">{student.department}</td>
+                    <td className="p-3">{student.year}</td>
+                    <td className="p-3">{student.grNumber}</td>
+                    <td className="p-3">
+                      <button
+                        onClick={() => handleDelete(student._id)}
+                        className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 text-sm"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="p-4 text-center text-gray-500">
+                    No committee members available.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -121,8 +172,4 @@ const  Student = () => {
   );
 };
 
-export default  Student;
-
-
-
-
+export default Student;
