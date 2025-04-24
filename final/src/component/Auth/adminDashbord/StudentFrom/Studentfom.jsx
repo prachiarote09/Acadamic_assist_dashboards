@@ -110,11 +110,12 @@ function Studentfom() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-gradient-to-r from-purple-400 to-blue-400 shadow-lg rounded-lg">
+    <div className="max-w-3xl mx-auto p-6 bg-gradient-to-r from-purple-500 to-purple-600 shadow-lg rounded-lg">
+
       <div className="flex justify-end mb-4">
         <button
           onClick={() => navigate("/admin-dashboard/studentlist")}
-          className="bg-green-400 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          className="bg-purple-950 text-white px-4 py-2 rounded-md hover:bg-purple-300"
         >
           View Students
         </button>
@@ -369,7 +370,7 @@ function Studentfom() {
         </div>
 
         <div className="flex justify-center gap-4">
-          <button type="submit" className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+          <button type="submit" className="bg-purple-950 text-white px-6 py-2 rounded-md hover:bg-purple-400">
             Save
           </button>
         </div>

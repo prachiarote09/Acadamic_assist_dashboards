@@ -148,12 +148,7 @@ const StudentList = () => {
                       >
                         View
                       </button>
-                      <button
-                        onClick={() => handleEditStudent(student._id)}
-                        className="bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-800 transition-colors"
-                      >
-                        Edit
-                      </button>
+                     
                       <button
                         onClick={() => handleDeleteStudent(student._id)}
                         className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-700 transition-colors"
