@@ -35,7 +35,8 @@ function UserDashboard() {
     localStorage.removeItem('loggedInUser');
     handleSucess('User LoggedOut');
     setTimeout(()=>{
-      navigate('/user/login');
+      navigate('/option');
+      
     },1000)
   }
 
