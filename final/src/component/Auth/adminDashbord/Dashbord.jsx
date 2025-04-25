@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import Notice from "./Notice/Notice";
 import Event from "./event/Event";
-
 import Commitee from "./commitee/Commitee";
 import Page from "./Commonpagge.jsx/Page";
 import Studentfom from "./StudentFrom/Studentfom";
@@ -23,7 +22,6 @@ function Dashbord() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 763);
   const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 763);
 
-  //changes by gaurang
   const [loggedInUser, setLoggedInUser] = useState('');
   const navigate = useNavigate();
   useEffect(()=>{

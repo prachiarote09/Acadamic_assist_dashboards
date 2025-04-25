@@ -39,8 +39,6 @@ app.use("/api/ragging", raggingCommitteeRoutes);
 app.use("/api/studentCommittee", studentCommitteeRoutes);
 app.use("/api/techdreamercommittiee", TechDreamerRoutes);
 
-
-
 const db=require('./Models/db');
 const FeedbackModel = require("./Models/Feedback");
 db();
