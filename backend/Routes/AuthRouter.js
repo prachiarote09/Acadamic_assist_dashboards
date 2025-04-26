@@ -16,7 +16,6 @@ const {signup, login } = require('../Controllers/AuthController');
 const { singupValidation, loginValidation } = require('../Middlewares/AuthValidation');
 
 router.post('/signup',singupValidation,signup);
-
 router.post('/login',loginValidation,login);
 
 module.exports=router;

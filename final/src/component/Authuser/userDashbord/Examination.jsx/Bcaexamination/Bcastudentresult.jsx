@@ -1,167 +1,130 @@
-import React, { useState, useEffect } from "react";
-import { openDB } from "idb";
-import { FaEye, FaDownload, FaTimes } from "react-icons/fa";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
-const DB_NAME = "CourseOverviewDB";
-const STORE_NAME = "questions";
+const Result = () => {
+  const [results, setResults] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-// ✅ Initialize IndexedDB
-const initDB = async () => {
-  return openDB(DB_NAME, 1, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
-      }
-    },
-  });
-};
-
-const Bcastudentresult = () => {
-  const [questions, setQuestions] = useState([]);
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
-
-  // ✅ Fetch questions from IndexedDB on mount
   useEffect(() => {
-    const fetchQuestions = async () => {
-      const db = await initDB();
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const store = tx.objectStore(STORE_NAME);
-      const allQuestions = await store.getAll();
-      setQuestions(allQuestions);
+    const fetchData = async () => {
+      try {
+        const res = await axios.get("http://localhost:8080/result/");
+        setResults(res.data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
     };
-    fetchQuestions();
+    fetchData();
   }, []);
 
-  // ✅ Open modal to view PDF or Image
-  const viewDetails = (question) => {
-    setSelectedQuestion(question);
+  const openInNewTab = (base64Data, mimeType) => {
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(
+        `<iframe src="data:${mimeType};base64,${base64Data}" 
+          frameborder="0" 
+          style="border:0; top:0; left:0; bottom:0; right:0; width:100%; height:100%;" 
+          allowfullscreen>
+        </iframe>`
+      );
+    }
   };
 
-  // ✅ Close modal
-  const closeModal = () => {
-    setSelectedQuestion(null);
+  const downloadFile = (base64Data, mimeType, fileName) => {
+    const blob = base64ToBlob(base64Data, mimeType);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
-  // ✅ Download PDF or Image
-  const downloadFile = (fileUrl, fileName) => {
-    const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = fileName;
-    link.click();
+  const base64ToBlob = (base64Data, mimeType) => {
+    const byteCharacters = atob(base64Data);
+    const byteArrays = [];
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+      const slice = byteCharacters.slice(offset, offset + 512);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+    return new Blob(byteArrays, { type: mimeType });
   };
+
+  const filteredResults = results.filter((entry) =>
+    entry.text.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6 bg-gray-100 min-h-screen">
-      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
-        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-blue-700">
-          📚 BCA Course Overview
-        </h1>
-
-        {/* ✅ Display Course Overview */}
-        <div className="space-y-4 sm:space-y-6">
-          {questions.length === 0 ? (
-            <p className="text-gray-500 text-center">No PDFs or images available.</p>
-          ) : (
-            questions.map((question) => (
-              <div
-                key={question.id}
-                className="p-3 sm:p-4 border rounded-lg bg-gray-50 shadow-md transition hover:shadow-lg hover:scale-105"
-              >
-                <p className="font-semibold text-lg text-gray-800">{question.text}</p>
-
-                {/* ✅ Buttons for View and Download */}
-                <div className="mt-3 sm:mt-4 flex gap-2 sm:gap-4 flex-wrap">
-                  {/* PDF Options */}
-                  {question.pdf && (
-                    <>
-                      <button
-                        onClick={() => viewDetails(question)}
-                        className="bg-blue-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded flex items-center gap-1 sm:gap-2 hover:bg-blue-600"
-                      >
-                        <FaEye />
-                        View PDF
-                      </button>
-                      <button
-                        onClick={() => downloadFile(question.pdf, "document.pdf")}
-                        className="bg-green-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded flex items-center gap-1 sm:gap-2 hover:bg-green-600"
-                      >
-                        <FaDownload />
-                        Download PDF
-                      </button>
-                    </>
-                  )}
-
-                  {/* Image Options */}
-                  {question.img && (
-                    <>
-                      <button
-                        onClick={() => viewDetails(question)}
-                        className="bg-blue-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded flex items-center gap-1 sm:gap-2 hover:bg-blue-600"
-                      >
-                        <FaEye />
-                        View Image
-                      </button>
-                      <button
-                        onClick={() => downloadFile(question.img, "image.png")}
-                        className="bg-green-500 text-white px-3 py-2 sm:px-4 sm:py-2 rounded flex items-center gap-1 sm:gap-2 hover:bg-green-600"
-                      >
-                        <FaDownload />
-                        Download Image
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+    <div className="max-w-6xl mx-auto p-6 bg-gray-100 min-h-screen">
+      {/* Top Bar: Title and Search */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-blue-600">📅 Exam Result</h2>
+        <input
+          type="text"
+          placeholder="Search result..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="border border-gray-300 rounded px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
       </div>
 
-      {/* ✅ Modal for Viewing PDF or Image */}
-      {selectedQuestion && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg max-w-lg sm:max-w-2xl w-full relative">
-            <button
-              onClick={closeModal}
-              className="absolute top-3 right-3 text-gray-600 hover:text-red-500"
-            >
-              <FaTimes size={20} />
-            </button>
-            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-blue-700">
-              📌 Course Details
-            </h2>
-            <p className="mb-2 sm:mb-3 text-gray-800 font-medium">{selectedQuestion.text}</p>
-
-            {/* ✅ PDF Preview */}
-            {selectedQuestion.pdf && (
-              <iframe
-                src={selectedQuestion.pdf}
-                className="w-full h-48 sm:h-64 border rounded-lg"
-                title="PDF Viewer"
-              />
-            )}
-
-            {/* ✅ Image Preview */}
-            {selectedQuestion.img && (
-              <img
-                src={selectedQuestion.img}
-                alt="Uploaded"
-                className="w-full h-auto rounded-lg shadow mb-2 sm:mb-3"
-              />
-            )}
-
-            {/* ✅ Close Button */}
-            <button
-              onClick={closeModal}
-              className="w-full mt-3 sm:mt-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-            >
-              Close
-            </button>
+      {/* Result Cards */}
+      {filteredResults.length === 0 ? (
+        <p className="text-center text-gray-500">No result found.</p>
+      ) : (
+        filteredResults.map((entry, idx) => (
+          <div key={idx} className="bg-white p-4 rounded shadow mb-4">
+            <p className="font-semibold text-lg mb-4">{entry.text}</p>
+            <div className="flex flex-wrap gap-2">
+              {entry.img && (
+                <>
+                  <button
+                    onClick={() => openInNewTab(entry.img, "image/png")}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                  >
+                    View Image
+                  </button>
+                  <button
+                    onClick={() =>
+                      downloadFile(entry.img, "image/png", `${entry.text}.png`)
+                    }
+                    className="bg-blue-300 text-white px-4 py-2 rounded hover:bg-blue-400"
+                  >
+                    Download Image
+                  </button>
+                </>
+              )}
+              {entry.pdf && (
+                <>
+                  <button
+                    onClick={() => openInNewTab(entry.pdf, "application/pdf")}
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    View PDF
+                  </button>
+                  <button
+                    onClick={() =>
+                      downloadFile(entry.pdf, "application/pdf", `${entry.text}.pdf`)
+                    }
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    Download PDF
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        ))
       )}
     </div>
   );
 };
 
-export default Bcastudentresult;
+export default Result;

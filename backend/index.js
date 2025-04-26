@@ -19,9 +19,11 @@ const EventModel = require("./Models/Event");
 const NoticeModel = require("./Models/Notice");
 const studentCommitteeRoutes = require("./Routes/studentCommitteeRoute");
 const TechDreamerRoutes = require("./Routes/techRoutes");
-
-
-
+const ExamTimetableRoutes = require("./Routes/examTimetableRoutes");
+const courseoverview = require("./Routes/coursesRouter");
+const result = require("./Routes/resultRouter");
+const question = require("./Routes/QuestionRouter");
+const questionbank = require("./Routes/QBankRouter");
 
 app.use(express.json()); // Ensure JSON parsing middleware is added
 app.use(bodyParser.json());
@@ -38,6 +40,14 @@ app.use("/api/sport", sportCommitteeRoutes);
 app.use("/api/ragging", raggingCommitteeRoutes);
 app.use("/api/studentCommittee", studentCommitteeRoutes);
 app.use("/api/techdreamercommittiee", TechDreamerRoutes);
+app.use(express.json({ limit: '100mb' }));  // Set limit to 50 MB for JSON data
+app.use(express.urlencoded({ limit: '100mb', extended: true })); 
+app.use("/examTimetable", ExamTimetableRoutes);
+app.use("/courses", courseoverview);
+app.use("/result", result);
+app.use("/questionpapers", question);
+app.use("/questionbank", questionbank);
+
 
 const db=require('./Models/db');
 const FeedbackModel = require("./Models/Feedback");

@@ -24,7 +24,7 @@ const createStudent = async(req,res) =>{
             emergencyMobileNo,
             user} = req.body;
 
-        if(!name || !dateOfBirth||!user){
+        if(!name || !grnumber ||!user){
             return res.status(400).json({message:"Please fill all fields"});
         }
 
@@ -72,9 +72,10 @@ const deleteStudent = async (req, res) => {
     }
 };
 
+
 module.exports={
     createStudent,
     fetchAllData,
     fetchSingleData,
     deleteStudent
-}
+}                                                                                                                                                                        

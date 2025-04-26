@@ -1,114 +1,130 @@
-import React, { useEffect, useState } from "react";
-import { openDB } from "idb";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { IoCalendarSharp } from "react-icons/io5";
 
 const BcaCourse = () => {
-  const [questions, setQuestions] = useState([]);
   const [questionText, setQuestionText] = useState("");
   const [pdfFile, setPdfFile] = useState(null);
   const [imgFile, setImgFile] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(null);
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
-
-  // Open IndexedDB Database
-  const openDatabase = async () => {
-    return await openDB("BcaCourseDB", 1, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains("questions")) {
-          db.createObjectStore("questions", { keyPath: "id", autoIncrement: true });
-        }
-      },
-    });
-  };
-
-  // Load questions from IndexedDB
-  const loadQuestions = async () => {
-    const db = await openDatabase();
-    const allQuestions = await db.getAll("questions");
-    setQuestions(allQuestions);
-  };
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [timetables, setTimetables] = useState([]);
 
   useEffect(() => {
-    loadQuestions();
+    fetchTimetables();
   }, []);
 
-  // Save questions to IndexedDB
-  const saveQuestionToDB = async (newQuestion) => {
-    const db = await openDatabase();
-    if (isEditing) {
-      newQuestion.id = questions[currentIndex].id;
-      await db.put("questions", newQuestion);
-      setIsEditing(false);
-      setCurrentIndex(null);
-    } else {
-      await db.add("questions", newQuestion);
+  const fetchTimetables = async () => {
+    try {
+      const res = await axios.get("http://localhost:8080/courses/");
+      setTimetables(res.data);
+    } catch (err) {
+      console.error("Error fetching data:", err);
     }
-    loadQuestions();
   };
 
-  // Handle File Change (PDF or Image)
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (type === "pdf") setPdfFile(reader.result);
-        if (type === "image") setImgFile(reader.result);
-      };
-      reader.readAsDataURL(file);
+      if (type === "pdf") setPdfFile(file);
+      if (type === "image") setImgFile(file);
     }
   };
 
-  // Add or Update Question
-  const addOrUpdateQuestion = async () => {
+  const handleSubmit = async () => {
     if (!questionText.trim()) {
       alert("Please enter a question!");
       return;
     }
 
-    const newQuestion = {
-      text: questionText,
-      pdf: pdfFile,
-      img: imgFile,
-    };
+    if (!pdfFile && !imgFile) {
+      alert("Please upload a PDF or image file.");
+      return;
+    }
 
-    await saveQuestionToDB(newQuestion);
+    try {
+      setLoading(true);
+      setError(null);
 
-    // Reset form
-    setQuestionText("");
-    setPdfFile(null);
-    setImgFile(null);
+      const formData = new FormData();
+      formData.append("text", questionText);
+      if (pdfFile) formData.append("pdf", pdfFile);
+      if (imgFile) formData.append("img", imgFile);
+
+      await axios.post("http://localhost:8080/courses/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setQuestionText("");
+      setPdfFile(null);
+      setImgFile(null);
+      fetchTimetables(); // Refresh list after upload
+      alert("Timetable uploaded successfully!");
+    } catch (err) {
+      console.error("Error uploading data:", err);
+      setError("Failed to upload. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Edit Question
-  const editQuestion = (index) => {
-    const question = questions[index];
-    setQuestionText(question.text);
-    setPdfFile(question.pdf);
-    setImgFile(question.img);
-    setIsEditing(true);
-    setCurrentIndex(index);
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:8080/courses/${id}`, {
+        method: 'DELETE',
+      });
+
+      // Check if the response is OK
+      if (response.ok) {
+        alert('Timetable deleted successfully');
+        fetchTimetables(); // Refresh the list of timetables
+      } else {
+        // Handle non-OK responses, such as errors
+        let data = {};
+        try {
+          data = await response.json(); // Attempt to parse JSON response
+        } catch (jsonError) {
+          // If JSON parsing fails, display a generic error message
+          data.error = "Failed to parse server response";
+        }
+        alert(data.error || 'Failed to delete timetable');
+      }
+    } catch (error) {
+      console.error('Error deleting timetable:', error);
+      alert('An error occurred while deleting the timetable');
+    }
   };
 
-  // Remove Question
-  const removeQuestion = async (id) => {
-    const db = await openDatabase();
-    await db.delete("questions", id);
-    loadQuestions();
+  const openInNewTab = (base64Data, mimeType) => {
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(
+        `<iframe src="data:${mimeType};base64,${base64Data}" 
+          frameborder="0" 
+          style="border:0; top:0; left:0; bottom:0; right:0; width:100%; height:100%;" 
+          allowfullscreen>
+        </iframe>`
+      );
+    }
   };
 
   return (
-    <div className="max-w-xl mx-auto p-6 bg-gray-100 min-h-screen">
-      <div className="bg-white p-6 rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold text-center mb-4">📚 Course Overview</h1>
+    <div className="max-w-2xl mx-auto p-6 bg-gray-100 min-h-screen">
+      {/* Upload Form */}
+      <div className="bg-white p-6 rounded-lg shadow-lg mb-8">
+        <h1 className="text-2xl font-bold text-center mb-4">
+          <IoCalendarSharp className="text-blue-500 inline mr-2" />
+          course Overview
+        </h1>
 
-        {/* Input Fields */}
+        {error && <div className="text-red-500 mb-4">{error}</div>}
+
         <div className="mb-4 space-y-3">
           <input
             type="text"
             value={questionText}
             onChange={(e) => setQuestionText(e.target.value)}
-            placeholder="Enter question text"
+            placeholder="Enter timetable text"
             className="w-full p-2 border rounded"
           />
           <input
@@ -123,100 +139,50 @@ const BcaCourse = () => {
             onChange={(e) => handleFileChange(e, "image")}
             className="w-full p-2 border rounded"
           />
-
           <button
-            onClick={addOrUpdateQuestion}
-            className={`w-full py-2 text-white font-semibold rounded ${
-              isEditing ? "bg-yellow-500 hover:bg-yellow-600" : "bg-blue-500 hover:bg-blue-600"
-            }`}
+            onClick={handleSubmit}
+            className="w-full py-2 text-white font-semibold rounded bg-purple-500 hover:bg-purple-600"
+            disabled={loading}
           >
-            {isEditing ? "Update Question" : "Add pdf"}
+            {loading ? "Uploading..." : "Upload Timetable"}
           </button>
-        </div>
-
-        {/* Questions List */}
-        <div className="space-y-4">
-          {questions.length === 0 ? (
-            <p className="text-gray-500 text-center">No PDF added yet.</p>
-          ) : (
-            questions.map((question, index) => (
-              <div key={question.id} className="p-4 border rounded-lg bg-gray-50 shadow-md">
-                <p className="font-semibold">{question.text}</p>
-
-                {question.pdf && (
-                  <button
-                    onClick={() => setSelectedQuestion(question)}
-                    className="text-blue-500 underline block mt-2"
-                  >
-                    📄 View PDF
-                  </button>
-                )}
-                {question.img && (
-                  <img
-                    src={question.img}
-                    alt="Question"
-                    className="w-32 h-32 object-cover rounded-lg shadow mt-2"
-                  />
-                )}
-
-                {/* Buttons */}
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={() => setSelectedQuestion(question)}
-                    className="px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                  >
-                    👀 View
-                  </button>
-                  <button
-                    onClick={() => editQuestion(index)}
-                    className="px-4 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                  >
-                    ✏️ Edit
-                  </button>
-                  <button
-                    onClick={() => removeQuestion(question.id)}
-                    className="px-4 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                  >
-                    🗑️ Remove
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
         </div>
       </div>
 
-      {/* Modal for Viewing a Question */}
-      {selectedQuestion && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md">
-            <h2 className="text-xl font-bold mb-4">📌 pdf Details</h2>
-            <p className="mb-3 text-gray-800 font-medium">{selectedQuestion.text}</p>
-
-            {selectedQuestion.pdf && (
-              <iframe
-                src={selectedQuestion.pdf}
-                className="w-full h-64 border rounded-lg"
-                title="PDF Viewer"
-              ></iframe>
-            )}
-            {selectedQuestion.img && (
-              <img
-                src={selectedQuestion.img}
-                alt="Question"
-                className="w-full rounded-lg shadow mb-3"
-              />
-            )}
-
-            <button
-              onClick={() => setSelectedQuestion(null)}
-              className="w-full py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-            >
-              Close
-            </button>
+      {/* List of Uploaded Timetables */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold mb-2">Uploaded Timetables</h2>
+        {timetables.map((entry) => (
+          <div key={entry._id} className="bg-white p-4 rounded shadow flex flex-col space-y-2">
+            <p className="font-semibold text-lg">{entry.text}</p>
+            <div className="flex flex-wrap gap-2">
+              {entry.img && (
+                <button
+                  onClick={() => openInNewTab(entry.img, "image/png")}
+                  className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                >
+                  View Image
+                </button>
+              )}
+              {entry.pdf && (
+                <button
+                  onClick={() => openInNewTab(entry.pdf, "application/pdf")}
+                  className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                >
+                  View PDF
+                </button>
+              )}
+              <button
+                onClick={() => handleDelete(entry._id)} // Use entry._id for delete
+                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        ))}
+        {timetables.length === 0 && <p className="text-gray-500">No timetables uploaded yet.</p>}
+      </div>
     </div>
   );
 };

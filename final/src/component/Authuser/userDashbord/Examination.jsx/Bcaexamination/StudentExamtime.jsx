@@ -1,155 +1,130 @@
-import React, { useState, useEffect } from "react";
-import { openDB } from "idb";
-import { FaEye, FaDownload } from "react-icons/fa";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
-const DB_NAME = "examDB";
-const STORE_NAME = "examtime";
+const ExamTimetable = () => {
+  const [timetables, setTimetables] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-const StudentExamtime = () => {
-  const [questions, setQuestions] = useState([]);
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
-
-  // ✅ Open IndexedDB and load questions
   useEffect(() => {
-    const loadQuestions = async () => {
-      const db = await openDB(DB_NAME, 1);
-      const allQuestions = await db.getAll(STORE_NAME);
-      setQuestions(allQuestions);
+    const fetchData = async () => {
+      try {
+        const res = await axios.get("http://localhost:8080/examTimetable/");
+        setTimetables(res.data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
     };
-
-    loadQuestions();
+    fetchData();
   }, []);
 
-  // ✅ Open Modal to View PDF or Image
-  const viewDetails = (question) => {
-    setSelectedQuestion(question);
+  const openInNewTab = (base64Data, mimeType) => {
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(
+        `<iframe src="data:${mimeType};base64,${base64Data}" 
+          frameborder="0" 
+          style="border:0; top:0; left:0; bottom:0; right:0; width:100%; height:100%;" 
+          allowfullscreen>
+        </iframe>`
+      );
+    }
   };
 
-  // ✅ Close Modal
-  const closeModal = () => {
-    setSelectedQuestion(null);
+  const downloadFile = (base64Data, mimeType, fileName) => {
+    const blob = base64ToBlob(base64Data, mimeType);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
-  // ✅ Download PDF or Image
-  const downloadFile = (fileUrl, fileName) => {
-    const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = fileName;
-    link.click();
+  const base64ToBlob = (base64Data, mimeType) => {
+    const byteCharacters = atob(base64Data);
+    const byteArrays = [];
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+      const slice = byteCharacters.slice(offset, offset + 512);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+    return new Blob(byteArrays, { type: mimeType });
   };
+
+  const filteredTimetables = timetables.filter((entry) =>
+    entry.text.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 bg-gray-100 min-h-screen">
-      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
-        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6 text-blue-700">
-          📝 BCA Exam Timetable
-        </h1>
-
-        {/* List of Questions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {questions.length === 0 ? (
-            <p className="text-gray-500 text-center col-span-full">
-              No Timetable available.
-            </p>
-          ) : (
-            questions.map((question) => (
-              <div
-                key={question.id}
-                className="p-4 border rounded-lg bg-gray-50 shadow-md transition hover:shadow-lg hover:scale-105"
-              >
-                <p className="font-semibold text-lg text-gray-800">{question.text}</p>
-
-                {/* PDF and Image Buttons */}
-                <div className="mt-4 flex flex-wrap gap-4">
-                  {/* PDF Options */}
-                  {question.pdf && (
-                    <>
-                      <button
-                        onClick={() => viewDetails(question)}
-                        className="bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-blue-600 transition"
-                      >
-                        <FaEye />
-                        View PDF
-                      </button>
-                      <button
-                        onClick={() => downloadFile(question.pdf, "document.pdf")}
-                        className="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-green-600 transition"
-                      >
-                        <FaDownload />
-                        Download PDF
-                      </button>
-                    </>
-                  )}
-
-                  {/* Image Options */}
-                  {question.img && (
-                    <>
-                      <button
-                        onClick={() => viewDetails(question)}
-                        className="bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-blue-600 transition"
-                      >
-                        <FaEye />
-                        View Image
-                      </button>
-                      <button
-                        onClick={() => downloadFile(question.img, "image.png")}
-                        className="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-green-600 transition"
-                      >
-                        <FaDownload />
-                        Download Image
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+    <div className="max-w-6xl mx-auto p-6 bg-gray-100 min-h-screen">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-blue-600">📅 Exam Timetable</h2>
+        <input
+          type="text"
+          placeholder="Search timetable..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="border border-gray-300 rounded px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
       </div>
 
-      {/* Modal for Viewing PDF or Image */}
-      {selectedQuestion && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 sm:p-6">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full relative">
-            <button
-              onClick={closeModal}
-              className="absolute top-3 right-3 text-gray-600 hover:text-red-500"
-            >
-              ✕
-            </button>
-            <h2 className="text-2xl font-bold mb-4 text-blue-700">📌 Exam Details</h2>
-            <p className="mb-3 text-gray-800 font-medium">{selectedQuestion.text}</p>
+      {filteredTimetables.length === 0 ? (
+        <p className="text-center text-gray-500">No timetable found.</p>
+      ) : (
+        filteredTimetables.map((entry, idx) => (
+          <div key={idx} className="bg-white p-4 rounded shadow mb-4">
+            <p className="font-semibold text-lg mb-4">{entry.text}</p>
 
-            {/* PDF Preview */}
-            {selectedQuestion.pdf && (
-              <iframe
-                src={selectedQuestion.pdf}
-                className="w-full h-64 sm:h-80 border rounded-lg"
-                title="PDF Viewer"
-              />
-            )}
+            <div className="flex flex-wrap gap-2">
+              {entry.img && (
+                <>
+                  <button
+                    onClick={() => openInNewTab(entry.img, "image/png")}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  >
+                    View Image
+                  </button>
+                  <button
+                    onClick={() =>
+                      downloadFile(entry.img, "image/png", `${entry.text}.png`)
+                    }
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  >
+                    Download Image
+                  </button>
+                </>
+              )}
 
-            {/* Image Preview */}
-            {selectedQuestion.img && (
-              <img
-                src={selectedQuestion.img}
-                alt="Exam Image"
-                className="w-full h-auto rounded-lg shadow mb-3"
-              />
-            )}
-
-            {/* Close Button */}
-            <button
-              onClick={closeModal}
-              className="w-full mt-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
-            >
-              Close
-            </button>
+              {entry.pdf && (
+                <>
+                  <button
+                    onClick={() => openInNewTab(entry.pdf, "application/pdf")}
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    View PDF
+                  </button>
+                  <button
+                    onClick={() =>
+                      downloadFile(entry.pdf, "application/pdf", `${entry.text}.pdf`)
+                    }
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    Download PDF
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        ))
       )}
     </div>
   );
 };
 
-export default StudentExamtime;
+export default ExamTimetable;

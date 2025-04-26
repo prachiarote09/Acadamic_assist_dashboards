@@ -1,169 +1,130 @@
-import React, { useState, useEffect } from "react";
-import { openDB } from "idb";
-import { FaEye, FaDownload } from "react-icons/fa";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
-// Database and Store Configuration
-const DB_NAME = "QuestionPaperDB";
-const STORE_NAME = "questionpapers";
+const Questionpaper = () => {
+  const [questionpapers, setQuestionpapers] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-// ✅ Initialize IndexedDB with Object Store Creation
-const initializeDB = async () => {
-  const db = await openDB(DB_NAME, 1, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, {
-          keyPath: "id",
-          autoIncrement: true,
-        });
-        console.log("✅ Object Store Created: questionpapers");
-      }
-    },
-  });
-};
-
-initializeDB();
-
-const StudentQuestionpaper = () => {
-  const [questions, setQuestions] = useState([]);
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
-
-  // ✅ Open IndexedDB and load questions
   useEffect(() => {
-    const loadQuestions = async () => {
+    const fetchData = async () => {
       try {
-        const db = await openDB(DB_NAME, 1);
-        const allQuestions = await db.getAll(STORE_NAME);
-        setQuestions(allQuestions);
-      } catch (error) {
-        console.error("❌ Error loading data:", error);
+        const res = await axios.get("http://localhost:8080/questionpapers/");
+        setQuestionpapers(res.data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
       }
     };
-
-    loadQuestions();
+    fetchData();
   }, []);
 
-  // ✅ Open Modal to View PDF or Image
-  const viewDetails = (question) => {
-    setSelectedQuestion(question);
+  const openInNewTab = (base64Data, mimeType) => {
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(
+        `<iframe src="data:${mimeType};base64,${base64Data}" 
+          frameborder="0" 
+          style="border:0; top:0; left:0; bottom:0; right:0; width:100%; height:100%;" 
+          allowfullscreen>
+        </iframe>`
+      );
+    }
   };
 
-  // ✅ Close Modal
-  const closeModal = () => {
-    setSelectedQuestion(null);
+  const downloadFile = (base64Data, mimeType, fileName) => {
+    const blob = base64ToBlob(base64Data, mimeType);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
-  // ✅ Download PDF or Image
-  const downloadFile = (fileUrl, fileName) => {
-    const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = fileName;
-    link.click();
+  const base64ToBlob = (base64Data, mimeType) => {
+    const byteCharacters = atob(base64Data);
+    const byteArrays = [];
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+      const slice = byteCharacters.slice(offset, offset + 512);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+    return new Blob(byteArrays, { type: mimeType });
   };
+
+  const filteredQuestionpapers = questionpapers.filter((entry) =>
+    entry.text.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 bg-gray-100 min-h-screen">
-      <div className="bg-white p-4 md:p-6 rounded-lg shadow-lg">
-        <h1 className="text-2xl md:text-3xl font-bold text-center mb-4 md:mb-6 text-blue-700">
-          📝 BCA Exam Question Papers
-        </h1>
-
-        {/* List of Questions */}
-        <div className="space-y-4 md:space-y-6">
-          {questions.length === 0 ? (
-            <p className="text-gray-500 text-center">No Question Papers available.</p>
-          ) : (
-            questions.map((question) => (
-              <div
-                key={question.id}
-                className="p-3 md:p-4 border rounded-lg bg-gray-50 shadow-md"
-              >
-                <p className="font-semibold text-lg text-gray-800">{question.text}</p>
-
-                {/* PDF and Image Buttons */}
-                <div className="mt-4 flex flex-wrap gap-4">
-                  {/* PDF Options */}
-                  {question.pdf && (
-                    <>
-                      <button
-                        onClick={() => viewDetails(question)}
-                        className="bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-blue-600 transition-all"
-                      >
-                        <FaEye />
-                        View PDF
-                      </button>
-                      <button
-                        onClick={() => downloadFile(question.pdf, "document.pdf")}
-                        className="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-green-600 transition-all"
-                      >
-                        <FaDownload />
-                        Download PDF
-                      </button>
-                    </>
-                  )}
-
-                  {/* Image Options */}
-                  {question.img && (
-                    <>
-                      <button
-                        onClick={() => viewDetails(question)}
-                        className="bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-blue-600 transition-all"
-                      >
-                        <FaEye />
-                        View Image
-                      </button>
-                      <button
-                        onClick={() => downloadFile(question.img, "image.png")}
-                        className="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-green-600 transition-all"
-                      >
-                        <FaDownload />
-                        Download Image
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+    <div className="max-w-6xl mx-auto p-6 bg-gray-100 min-h-screen">
+      {/* Top Bar: Title and Search */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-blue-600">📄 Exam Question Papers</h2>
+        <input
+          type="text"
+          placeholder="Search question paper..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="border border-gray-300 rounded px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
       </div>
 
-      {/* Modal for Viewing PDF or Image */}
-      {selectedQuestion && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-          <div className="bg-white p-4 md:p-6 rounded-lg shadow-lg max-w-lg w-full">
-            <h2 className="text-2xl font-bold mb-4">📌 Question Details</h2>
-            <p className="mb-3 text-gray-800 font-medium">{selectedQuestion.text}</p>
-
-            {/* PDF Preview */}
-            {selectedQuestion.pdf && (
-              <iframe
-                src={selectedQuestion.pdf}
-                className="w-full h-64 border rounded-lg"
-                title="PDF Viewer"
-              />
-            )}
-
-            {/* Image Preview */}
-            {selectedQuestion.img && (
-              <img
-                src={selectedQuestion.img}
-                alt="Exam Image"
-                className="w-full h-auto rounded-lg shadow mb-3"
-              />
-            )}
-
-            {/* Close Button */}
-            <button
-              onClick={closeModal}
-              className="w-full mt-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-all"
-            >
-              Close
-            </button>
+      {/* Question Paper Cards */}
+      {filteredQuestionpapers.length === 0 ? (
+        <p className="text-center text-gray-500">No question paper found.</p>
+      ) : (
+        filteredQuestionpapers.map((entry, idx) => (
+          <div key={idx} className="bg-white p-4 rounded shadow mb-4">
+            <p className="font-semibold text-lg mb-4">{entry.text}</p>
+            <div className="flex flex-wrap gap-2">
+              {entry.img && (
+                <>
+                  <button
+                    onClick={() => openInNewTab(entry.img, "image/png")}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  >
+                    View Image
+                  </button>
+                  <button
+                    onClick={() =>
+                      downloadFile(entry.img, "image/png", `${entry.text}.png`)
+                    }
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  >
+                    Download Image
+                  </button>
+                </>
+              )}
+              {entry.pdf && (
+                <>
+                  <button
+                    onClick={() => openInNewTab(entry.pdf, "application/pdf")}
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    View PDF
+                  </button>
+                  <button
+                    onClick={() =>
+                      downloadFile(entry.pdf, "application/pdf", `${entry.text}.pdf`)
+                    }
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    Download PDF
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        ))
       )}
     </div>
   );
 };
 
-export default StudentQuestionpaper;
+export default Questionpaper;
